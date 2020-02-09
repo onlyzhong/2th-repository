@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        .map {
+            width: 800px;
+            height: 600px;
+            background-color: #CCC;
+            position: relative;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="map"></div>
+    <script>
+        //小方块
+        (function () {
+            var elements = [];
+            function Food(width, height) {
+                this.width = width || 20;
+                this.height = height || 20;
+                // this.x = 0;
+                // this.y = 0;
+            }
+            //初始化
+            Food.prototype.init = function (map) {
+                remove();
+                var div = document.createElement("div");
+                map.appendChild(div);
+                div.style.position = "absolute";
+                div.style.width = this.width + "px";
+                div.style.height = this.height + "px";
+                div.style.backgroundImage = "url('./bird.png')";
+                div.style.backgroundSize = "100%"
+                this.x = parseInt(Math.random() * (map.offsetWidth / this.width)) * this.width;
+                this.y = parseInt(Math.random() * (map.offsetHeight / this.height)) * this.height;
+                div.style.left = this.x + "px";
+                div.style.top = this.y + "px";
+                elements.push(div);
+            }
+            function remove() {
+                for (var i = 0; i < elements.length; i++) {
+                    var ele = elements[i];
+                    ele.parentNode.removeChild(ele);
+                    elements.splice(i, 1);
+                }
+            }
+            window.Food = Food;
+        })();
+
+
+        //小蛇
+        (function () {
+            var elements = [];
+            function Snake(width, height, direction) {
+                this.width = width || 20;
+                this.height = height || 20;
+                this.direction = direction || "right";
+                this.body = [{
+                    x: 3,
+                    y: 2,
+                    color: "red"
+                }, {
+                    x: 2,
+                    y: 2,
+                    color: "yellow"
+                }, {
+                    x: 1,
+                    y: 2,
+                    color: "yellow"
+                }];
+            }
+            window.Snake = Snake;
+            Snake.prototype.init = function (map) {
+                remove();
+                for (var i = 0; i < this.body.length; i++) {
+                    var obj = this.body[i];
+                    var div = document.createElement("div");
+                    map.appendChild(div);
+                    div.style.position = "absolute";
+                    div.style.height = this.height + "px";
+                    div.style.width = this.width + "px";
+                    div.style.left = obj.x * this.width + "px";
+                    div.style.top = obj.y * this.height + "px";
+                    div.style.backgroundColor = obj.color;
+                    div.style.backgroundImage = "url('./bird.png')";
+                    div.style.backgroundSize = "100%";
+                    elements.push(div);
+                }
+                function remove() {
+                    var i = elements.length - 1;
+                    for (; i >= 0; i--) {
+                        var ele = elements[i];
+                        ele.parentNode.removeChild(ele);
+                        elements.splice(i, 1);
+                    }
+                }
+            }
+
+            Snake.prototype.move = function (food, map) {
+                var i = this.body.length - 1;
+                for (; i > 0; i--) {
+                    this.body[i].x = this.body[i - 1].x;
+                    this.body[i].y = this.body[i - 1].y;
+                }
+                switch (this.direction) {
+                    case "right": this.body[0].x += 1;
+                        flag = true; break;
+                    case "left": this.body[0].x -= 1;
+                        flag = true; break;
+                    case "top": this.body[0].y -= 1;
+                        flag = true; break;
+                    case "bottom": this.body[0].y += 1;
+                        flag = true; break;
+                }
+                var headX = this.body[0].x * this.width;
+                var headY = this.body[0].y * this.height;
+                if (headX == food.x && headY == food.y) {
+                    var last = this.body[this.body.length - 1];
+                    this.body.push({
+                        x: last.x,
+                        y: last.y,
+                        color: last.color
+                    });
+                    food.init(map);
+                }
+
+            }
+
+        })();
+
+        //游戏
+        (function () {
+            function Game(map) {
+                this.food = new Food();
+                this.snake = new Snake();
+                this.map = map;
+                that = this;
+            }
+            window.Game = Game;
+            //初始化
+            Game.prototype.init = function () {
+                this.food.init(this.map);
+                this.snake.init(this.map);
+                this.runSnake(this.food, this.map);
+                this.bindKey();
+
+            }
+            Game.prototype.runSnake = function (food, map) {
+                var timeId = setInterval(function () {
+                    this.snake.move(food, map);
+                    var maxX = map.offsetWidth / this.snake.width;
+                    var maxY = map.offsetHeight / this.snake.height;
+                    var headX = this.snake.body[0].x;
+                    var headY = this.snake.body[0].y;
+                    if (headX < 0 || headX >= maxX || headY < 0 || headY >= maxY) {
+                        clearInterval(timeId);
+                        alert("游戏结束");
+                        return;
+                    }
+                    for (var i = this.snake.body.length - 1; i > 2; i--) {
+                        if (headY == this.snake.body[i].y && headX == this.snake.body[i].x) {
+                            clearInterval(timeId);
+                            alert("游戏结束");
+                            return;
+                        }
+                    }
+                    this.snake.init(map);
+                }.bind(that), 100)
+            }
+
+            Game.prototype.bindKey = function () {
+                document.addEventListener("keydown", function (e) {
+                    switch (e.keyCode) {
+                        case 37: if ((this.snake.direction != "right") && flag) {
+                            this.snake.direction = "left";
+                            flag = false;
+                        }
+                            break;
+                        case 38:
+                            if ((this.snake.direction != "bottom") && flag) {
+                                this.snake.direction = "top";
+                                flag = false;
+                            }
+                            break;
+                        case 39:
+                            if ((this.snake.direction != "left") && flag) {
+                                this.snake.direction = "right";
+                                flag = false;
+                            }
+                            break;
+
+                        case 40:
+                            if ((this.snake.direction != "top") && flag) {
+                                this.snake.direction = "bottom";
+                                flag = false;
+                            }
+                            break;
+                    }
+                }.bind(that), false)
+            }
+
+        })();
+
+
+        //外部测试代码
+        var flag = true;
+        var gm = new Game(document.querySelector(".map"));
+        gm.init();
+        // sk.init(document.querySelector(".map"))
+        // fd.init(document.querySelector(".map"))
+    </script>
+
+
+</body>
+
+</html>
